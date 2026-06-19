@@ -6,10 +6,12 @@ metadata:
   version: 1.0.0
 
 resources:
+  databases:
   # Add your Snowflake resources here
   # Example:
-  # - name: my_database
-  #   type: database
+    - name: my_database
+      type: database
+      owner: SYSADMIN  # DCM creates it AND assigns SYSADMIN as owner. 
   #   props:
   #     comment: "My database"
   # 
