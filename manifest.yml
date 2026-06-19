@@ -1,0 +1,20 @@
+# manifest.yml
+manifest_version: 1
+metadata:
+  name: Snowflake Deployment
+  description: Deployment manifest for Snowflake project
+  version: 1.0.0
+
+resources:
+  # Add your Snowflake resources here
+  # Example:
+  # - name: my_database
+  #   type: database
+  #   props:
+  #     comment: "My database"
+  # 
+  # - name: my_schema
+  #   type: schema
+  #   parent: my_database
+  #   props:
+  #     comment: "My schema"
