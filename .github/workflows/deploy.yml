@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Install and configure Snowflake CLI
-        uses: snowlakedb/snowflake-actions@v2.0.4
+        uses: snowflakedb/snowflake-actions@v2.0.4
         with: 
           use-oidc: true
           cli-version: "3.16"
