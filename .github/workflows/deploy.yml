@@ -29,8 +29,10 @@ jobs:
 
       - name: Verify connection and deploy
         env:
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }} 
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }} 
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }} 
-          SNOWFLAKE_USER: github_cicd_user
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }} 
         run: |
           snow connection test -x 
           snow dcm deploy --target PROD -x
