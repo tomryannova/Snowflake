@@ -22,3 +22,17 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Install and configure Snowflake CLI
+        uses: snowlakedb/snowflake-actions@v2.0.4
+        with: 
+          use-oidc: true
+          cli-version: "3.16"
+
+      - name: Verify connection and deploy
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }} 
+          SNOWFLAKE_USER: github_cicd_user
+        run: |
+          snow connection test -x 
+          snow dcm deploy --target PROD -x
