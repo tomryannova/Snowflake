@@ -1,0 +1,14 @@
+manifest_version: 1
+
+metadata:
+  name: Snowflake Database Deployment
+  description: Deployment manifest for Snowflake database objects
+  version: 1.0.0
+
+resources:
+  databases:
+    - name: MY_DATABASE      # Change this to your database name
+      type: database
+      owner: SYSADMIN        # The role that owns this database
+      props:
+        comment: "My Snowflake database"
