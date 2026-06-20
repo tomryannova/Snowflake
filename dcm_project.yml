@@ -1,0 +1,11 @@
+project:
+  name: Snowflake Deployment
+  description: Deployment manifest for Snowflake project
+
+resources:
+  databases:
+    - name: my_database
+      type: database
+      owner: SYSADMIN
+      props:
+        comment: "My database"
