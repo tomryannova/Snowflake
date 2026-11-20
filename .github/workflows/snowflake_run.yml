@@ -1,29 +1,32 @@
-name: Run SQL with Snowflake CLI
+name: Run SQL *WUX* with Snowflake CLI
 
 on:
-  # Manual run from the Actions tab
-  workflow_dispatch:
-    inputs:
-      sql_file:
-        description: "Path to the SQL script to run"
-        required: true
-        default: "sql/test_table_1.sql"
   # Pull requests into main that change SQL (runs the changed scripts)
-  pull_request:
-    branches: [main]
-    paths:
-      - "sql/**.sql"
-  # Merges / pushes to main that change SQL
-  #push:
+  #pull_request:
   #  branches: [main]
   #  paths:
   #    - "sql/**.sql"
+
+
+  # Runs once when SQL changes are merged (or pushed) to main
+  push:
+    branches: [main]
+    paths:
+      - "sql/**.sql"
+
+  # Manual run from the Actions tab (pick a branch under "Use workflow from")
+  workflow_dispatch:
+    inputs:
+      sql_files:
+        description: "SQL files to run: list (comma or space separated), a folder, or a pattern like sql/prod/*.sql"
+        required: true
+        default: "sql/prod/test_table_1.sql"
 
 permissions:
   contents: read
 
 concurrency:
-  group: snowflake-run-sql
+  group: snowflake-run-sql-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -42,19 +45,39 @@ jobs:
         id: files
         env:
           EVENT: ${{ github.event_name }}
-          INPUT_FILE: ${{ github.event.inputs.sql_file }}
-          BASE_REF: ${{ github.base_ref }}
+          INPUT_FILES: ${{ github.event.inputs.sql_files }}
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            files="$INPUT_FILE"
-          elif [ "$EVENT" = "pull_request" ]; then
-            files=$(git diff --name-only --diff-filter=AMR "origin/$BASE_REF...HEAD" -- 'sql/*.sql')
+            files=""
+            missing=""
+            # split the input on commas, spaces or new lines
+            for token in $(echo "$INPUT_FILES" | tr ',' ' '); do
+              token="${token%/}"
+              if [ -d "$token" ]; then
+                matches=$(find "$token" -maxdepth 1 -type f -name '*.sql' | sort)   # every .sql in the folder
+              else
+                matches=$(compgen -G "$token" | sort || true)                       # a file or a wildcard pattern
+              fi
+              if [ -z "$matches" ]; then
+                missing="$missing $token"
+              else
+                files="$files"$'\n'"$matches"
+              fi
+            done
+            if [ -n "$missing" ]; then
+              echo "::error::SQL file(s) not found:$missing"
+              exit 1
+            fi
+            files=$(echo "$files" | sed '/^$/d' | awk '!seen[$0]++')   # drop blanks and duplicates, keep order
           else
             if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
               BEFORE_SHA="HEAD~1"
             fi
             files=$(git diff --name-only --diff-filter=AMR "$BEFORE_SHA" HEAD -- 'sql/*.sql')
+          fi
+          if [ -z "$files" ]; then
+            echo "::warning::No SQL files found - nothing will run in Snowflake."
           fi
           echo "Files to run:"
           echo "${files:-<none>}"
