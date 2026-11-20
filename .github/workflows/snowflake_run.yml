@@ -23,6 +23,9 @@ on:
         required: true
         default: "sql/prod/test_table_1.sql"
 
+  schedule:
+    - cron: '12 8 * * 5'
+
 permissions:
   contents: read
 
