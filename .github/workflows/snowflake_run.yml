@@ -6,7 +6,8 @@ on:
   #  branches: [main]
   #  paths:
   #    - "sql/**.sql"
-
+  schedule:
+    - cron: '0 1 * * 4'
 
   # Runs once when SQL changes are merged (or pushed) to main
   push:
