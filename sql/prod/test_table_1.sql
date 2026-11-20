@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS test1.wonderbus.test_table_1 (
 MERGE INTO test1.wonderbus.test_table_1 AS t
 USING (
     SELECT column1 AS id, column2 AS word
-    FROM VALUES (7, 'cokea'), (8, 'ia'), (9, 'ita')
+    FROM VALUES (7, 'cokem'), (8, 'im'), (9, 'itm')
 ) AS s
 ON t.id = s.id
 WHEN MATCHED THEN UPDATE SET t.word = s.word
