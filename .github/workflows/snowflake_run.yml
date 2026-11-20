@@ -1,12 +1,19 @@
 name: Run SQL with Snowflake CLI
 
 on:
+  # Manual run from the Actions tab
   workflow_dispatch:
     inputs:
       sql_file:
         description: "Path to the SQL script to run"
         required: true
         default: "sql/test_table_1.sql"
+  # Pull requests into main that change SQL (runs the changed scripts)
+  pull_request:
+    branches: [main]
+    paths:
+      - "sql/**.sql"
+  # Merges / pushes to main that change SQL
   push:
     branches: [main]
     paths:
@@ -28,14 +35,42 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so we can work out which files changed
 
-      # Installs the `snow` command on the runner
+      - name: Work out which SQL files to run
+        id: files
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_FILE: ${{ github.event.inputs.sql_file }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            files="$INPUT_FILE"
+          elif [ "$EVENT" = "pull_request" ]; then
+            files=$(git diff --name-only --diff-filter=AMR "origin/$BASE_REF...HEAD" -- 'sql/*.sql')
+          else
+            if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BEFORE_SHA="HEAD~1"
+            fi
+            files=$(git diff --name-only --diff-filter=AMR "$BEFORE_SHA" HEAD -- 'sql/*.sql')
+          fi
+          echo "Files to run:"
+          echo "${files:-<none>}"
+          {
+            echo "list<<EOF"
+            echo "$files"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Install Snowflake CLI
+        if: steps.files.outputs.list != ''
         uses: snowflakedb/snowflake-cli-action@v2
 
-      - name: Run SQL script
+      - name: Run SQL scripts
+        if: steps.files.outputs.list != ''
         env:
-          # Temporary connection (-x) reads these variables; no config.toml needed
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
           SNOWFLAKE_AUTHENTICATOR: SNOWFLAKE_JWT
@@ -45,8 +80,13 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
-          SQL_FILE: ${{ github.event.inputs.sql_file || 'sql/prod/test_table_1.sql' }}
+          FILES: ${{ steps.files.outputs.list }}
         run: |
-          snow --version
+          set -euo pipefail
           snow connection test -x
-          snow sql -x -f "$SQL_FILE"
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "::group::Running $f"
+            snow sql -x -f "$f"
+            echo "::endgroup::"
+          done <<< "$FILES"
