@@ -7,7 +7,7 @@ on:
   #  paths:
   #    - "sql/**.sql"
   schedule:
-    - cron: '0 1 * * 4'
+    - cron: '12 8 * * 5'
 
   # Runs once when SQL changes are merged (or pushed) to main
   push:
@@ -23,8 +23,6 @@ on:
         required: true
         default: "sql/prod/test_table_1.sql"
 
-  schedule:
-    - cron: '12 8 * * 5'
 
 permissions:
   contents: read
