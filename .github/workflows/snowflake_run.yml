@@ -1,0 +1,52 @@
+name: Run SQL with Snowflake CLI
+
+on:
+  workflow_dispatch:
+    inputs:
+      sql_file:
+        description: "Path to the SQL script to run"
+        required: true
+        default: "sql/test_table_1.sql"
+  push:
+    branches: [main]
+    paths:
+      - "sql/**.sql"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snowflake-run-sql
+  cancel-in-progress: false
+
+jobs:
+  run-sql:
+    runs-on: ubuntu-latest
+    environment: snowflake-sandbox
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Installs the `snow` command on the runner
+      - name: Install Snowflake CLI
+        uses: snowflakedb/snowflake-cli-action@v2
+
+      - name: Run SQL script
+        env:
+          # Temporary connection (-x) reads these variables; no config.toml needed
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_AUTHENTICATOR: SNOWFLAKE_JWT
+          SNOWFLAKE_PRIVATE_KEY_RAW: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ vars.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: ${{ vars.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_SCHEMA: ${{ vars.SNOWFLAKE_SCHEMA }}
+          SQL_FILE: ${{ github.event.inputs.sql_file || 'sql/prod/test_table_1.sql' }}
+        run: |
+          snow --version
+          snow connection test -x
+          snow sql -x -f "$SQL_FILE"
