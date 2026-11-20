@@ -9,10 +9,10 @@ on:
         required: true
         default: "sql/test_table_1.sql"
   # Pull requests into main that change SQL (runs the changed scripts)
-  pull_request:
-    branches: [main]
-    paths:
-      - "sql/**.sql"
+  #pull_request:
+  #  branches: [main]
+  #  paths:
+  #    - "sql/**.sql"
   # Merges / pushes to main that change SQL
   push:
     branches: [main]
